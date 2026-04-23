@@ -77,9 +77,36 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             temp_past_df["day"] = temp_past_df["day"].astype(int)
             merged_df = pd.concat([temp_past_df, temp_last_df], ignore_index=True)
             merged_df["day"] = pd.to_numeric(merged_df["day"], errors="coerce")
+            #merged_df = merged_df.sort_values("day").reset_index(drop=True)
+            #window_size = int(np.round(len(temp_last_df) / 2, 0))
+            #merged_df["이동평균"] = merged_df["total_count"].iloc[::-1].rolling(window=window_size, min_periods=1).mean().iloc[::-1]
             merged_df = merged_df.sort_values("day").reset_index(drop=True)
+
+            # 🔥 여기 추가 (이 줄부터)
+            if merged_df.empty or merged_df["total_count"].dropna().empty:
+                st.warning("데이터가 없습니다.")
+                return
+
             window_size = int(np.round(len(temp_last_df) / 2, 0))
-            merged_df["이동평균"] = merged_df["total_count"].iloc[::-1].rolling(window=window_size, min_periods=1).mean().iloc[::-1]
+            window_size = max(1, window_size)
+
+            merged_df["이동평균"] = (
+                merged_df["total_count"]
+                .iloc[::-1]
+                .rolling(window=window_size, min_periods=1)
+                .mean()
+                .iloc[::-1]
+            )
+
+
+
+
+
+
+
+
+
+            
             moving_avg_df = merged_df[merged_df["day"].isin(temp_last_df["day"])].copy()
             area = alt.Chart(temp_last_df).mark_area(opacity=0.8, color="#173F5F").encode(
                 x=alt.X("day:Q", title="Day", scale=alt.Scale(nice=True), axis=alt.Axis(format=".0f")),
@@ -114,19 +141,26 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             merged_df["day"] = pd.to_numeric(merged_df["day"], errors="coerce")
             merged_df = merged_df.sort_values("day").reset_index(drop=True)
             merged_df = merged_df.sort_values("day").reset_index(drop=True)
-
-            # ✅ 데이터 없을 때 방어
-            if merged_df.empty or merged_df["total_count"].dropna().empty:
+            #window_size = int(np.round(len(temp_last_df) / 2, 0))
+            #merged_df["이동평균"] = merged_df["disabled_count"].iloc[::-1].rolling(window=window_size, min_periods=1).mean().iloc[::-1]
+            if merged_df.empty or merged_df["disabled_count"].dropna().empty:
                 st.warning("데이터가 없습니다.")
                 return
 
-            # ✅ window_size 안전하게
             window_size = int(np.round(len(temp_last_df) / 2, 0))
             window_size = max(1, window_size)
 
+            merged_df["이동평균"] = (
+                merged_df["disabled_count"]
+                .iloc[::-1]
+                .rolling(window=window_size, min_periods=1)
+                .mean()
+                .iloc[::-1]
+            )
 
 
-            merged_df["이동평균"] = merged_df["disabled_count"].iloc[::-1].rolling(window=window_size, min_periods=1).mean().iloc[::-1]
+
+            
             moving_avg_df = merged_df[merged_df["day"].isin(temp_last_df["day"])].copy()
             area = alt.Chart(temp_last_df).mark_area(opacity=0.7, color="#3CAEA3").encode(
                 x=alt.X("day:Q", title="Day", scale=alt.Scale(nice=True), axis=alt.Axis(format=".0f")),
@@ -160,8 +194,29 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             merged_df = pd.concat([temp_past_df, temp_last_df], ignore_index=True)
             merged_df["day"] = pd.to_numeric(merged_df["day"], errors="coerce")
             merged_df = merged_df.sort_values("day").reset_index(drop=True)
+            #window_size = int(np.round(len(temp_last_df) / 2, 0))
+            #merged_df["이동평균"] = merged_df["older_adults_count"].iloc[::-1].rolling(window=window_size, min_periods=1).mean().iloc[::-1]
+            
+            if merged_df.empty or merged_df["older_adults_count"].dropna().empty:
+                st.warning("데이터가 없습니다.")
+                return
+
             window_size = int(np.round(len(temp_last_df) / 2, 0))
-            merged_df["이동평균"] = merged_df["older_adults_count"].iloc[::-1].rolling(window=window_size, min_periods=1).mean().iloc[::-1]
+            window_size = max(1, window_size)
+
+            merged_df["이동평균"] = (
+                merged_df["older_adults_count"]
+                .iloc[::-1]
+                .rolling(window=window_size, min_periods=1)
+                .mean()
+                .iloc[::-1]
+            )
+
+
+
+
+
+            
             moving_avg_df = merged_df[merged_df["day"].isin(temp_last_df["day"])].copy()
             area = alt.Chart(temp_last_df).mark_area(opacity=0.7, color="#F6D55C").encode(
                 x=alt.X("day:Q", title="Day", scale=alt.Scale(nice=True), axis=alt.Axis(format=".0f")),
