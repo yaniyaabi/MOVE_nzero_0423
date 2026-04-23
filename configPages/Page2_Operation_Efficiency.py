@@ -11,6 +11,26 @@ from Modules.P2_Kakao_link_loader import return_link_frequency
 from Modules.N1_Kakao_data_loader import return_pickup_station_count
 from utils.maps import normalize_weights, markers_map_html, default_map_html, links_map_html
 
+
+def apply_donut_layout(fig, center_text, legend_y=-0.15, height=360, bottom_margin=80, font_size=16, domain_y_start=0.25):
+    fig.update_layout(
+        annotations=[dict(text=center_text, x=0.5, y=0.58, font_size=24, showarrow=False)],
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=legend_y,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=font_size)
+        ),
+        hoverlabel=dict(font_size=16),
+        margin=dict(t=20, b=bottom_margin, l=20, r=20),
+        height=height
+    )
+    fig.update_traces(domain=dict(x=[0.15, 0.85], y=[domain_y_start, 1.0]))
+
+
 def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
 
     st.header(f"♿ MOVE / 운영 효율")
@@ -28,8 +48,8 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
     selected_label = st.selectbox(f"🕒 현재 시간: {current_time} ", option_labels, index=default_index)
     selected_days = options[selected_label]
 
-
     col = st.columns((1, 1, 1, 1), gap='large')
+
     with col[0]:
         st.markdown('#### **|** 예약 유형')
         temp_dispatch_df = return_reserveType(current_time=current_time, day_interval=selected_days)
@@ -48,14 +68,11 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             textfont=dict(size=20),
             hoverinfo='text',
             hovertext=hovertext,
-            marker=dict(colors=colors, line=dict(color='white', width=0))
+            marker=dict(colors=colors, line=dict(color='white', width=0)),
+            sort=False,
+            direction='clockwise'
         )])
-        fig.update_layout(
-            annotations=[dict(text='예약<br>유형', x=0.5, y=0.5, font_size=24, showarrow=False)],
-            showlegend=True,
-            legend=dict(font=dict(size=18)),
-            hoverlabel=dict(font_size=16),
-        )
+        apply_donut_layout(fig, '예약<br>유형')
         st.plotly_chart(fig, use_container_width=True)
 
     with col[1]:
@@ -76,14 +93,11 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             textfont=dict(size=20),
             hoverinfo='text',
             hovertext=hovertext,
-            marker=dict(colors=colors, line=dict(color='white', width=0))
+            marker=dict(colors=colors, line=dict(color='white', width=0)),
+            sort=False,
+            direction='clockwise'
         )])
-        fig.update_layout(
-            annotations=[dict(text='서비스<br>유형', x=0.5, y=0.5, font_size=24, showarrow=False)],
-            showlegend=True,
-            legend=dict(font=dict(size=18)),
-            hoverlabel=dict(font_size=16),
-        )
+        apply_donut_layout(fig, '서비스<br>유형')
         st.plotly_chart(fig, use_container_width=True)
 
     with col[2]:
@@ -104,14 +118,11 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             textfont=dict(size=20),
             hoverinfo='text',
             hovertext=hovertext,
-            marker=dict(colors=colors, line=dict(color='white', width=0))
+            marker=dict(colors=colors, line=dict(color='white', width=0)),
+            sort=False,
+            direction='clockwise'
         )])
-        fig.update_layout(
-            annotations=[dict(text='운행<br>차량', x=0.5, y=0.5, font_size=24, showarrow=False)],
-            showlegend=True,
-            legend=dict(font=dict(size=18)),
-            hoverlabel=dict(font_size=16),
-        )
+        apply_donut_layout(fig, '운행<br>차량')
         st.plotly_chart(fig, use_container_width=True)
 
     with col[3]:
@@ -132,13 +143,18 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             textfont=dict(size=20),
             hoverinfo='text',
             hovertext=hovertext,
-            marker=dict(colors=colors, line=dict(color='white', width=0))
+            marker=dict(colors=colors, line=dict(color='white', width=0)),
+            sort=False,
+            direction='clockwise'
         )])
-        fig.update_layout(
-            annotations=[dict(text='배차거절<br>사유', x=0.5, y=0.5, font_size=24, showarrow=False)],
-            showlegend=True,
-            legend=dict(font=dict(size=18)),
-            hoverlabel=dict(font_size=16),
+        apply_donut_layout(
+            fig,
+            '배차거절<br>사유',
+            legend_y=-0.22,
+            height=390,
+            bottom_margin=110,
+            font_size=14,
+            domain_y_start=0.30
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -151,24 +167,12 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
 
         col_sub = st.columns((0.3, 1, 1), gap='small')
         with col_sub[0]:
-            #st.metric(label="실차 운행률 (%)", value=np.round(stats[0], 1), delta=np.round((stats[0] - stats[1]), 1), label_visibility='hidden')
             st.metric(
                 label="실차 운행률 (%)",
                 value=float(np.round(stats[0], 1)),
                 delta=float(np.round(stats[0] - stats[1], 1)),
                 label_visibility='hidden'
-                )
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+            )
             st.markdown(f'###### 지난 {temp_interval}일 평균')
         with col_sub[1]:
             st.altair_chart(chart_daily, use_container_width=True)
@@ -179,30 +183,15 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
 
         st.markdown('#### **|** 실차 운행률 (%)')
         chart_daily, chart_hourly, stats = return_boaring_vehicle_rates(current_time=current_time, days_interval=temp_interval)
-        
+
         col_sub = st.columns((0.3, 1, 1), gap='small')
         with col_sub[0]:
-            #st.metric(label="실차 운행률 (%)", value=np.round(stats[0], 1), delta=np.round((stats[0] - stats[1]), 1), label_visibility='hidden')
             st.metric(
                 label="실차 운행률 (%)",
                 value=float(np.round(stats[0], 1)),
                 delta=float(np.round(stats[0] - stats[1], 1)),
                 label_visibility='hidden'
             )
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
             st.markdown(f'###### 지난 {temp_interval}일 평균')
         with col_sub[1]:
             st.altair_chart(chart_daily, use_container_width=True)
@@ -214,21 +203,12 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
         chart_daily, stats = return_service_capacity(current_time=current_time, days_interval=temp_interval)
         col_sub = st.columns((0.3, 1), gap='small')
         with col_sub[0]:
-            #st.metric(label="승객 탑승률 (%)", value=np.round(stats[0], 1), delta=np.round((stats[0] - stats[1]), 1), label_visibility='hidden')
             st.metric(
                 label="승객 탑승률 (%)",
                 value=float(np.round(stats[0], 1)),
                 delta=float(np.round(stats[0] - stats[1], 1)),
                 label_visibility='hidden'
             )
-            
-            
-            
-            
-            
-            
-            
-            
             st.markdown(f'###### 지난 {temp_interval}일 평균')
         with col_sub[1]:
             st.altair_chart(chart_daily, use_container_width=True)
@@ -236,15 +216,15 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
     st.markdown('---')
 
     sub_service_options = {
-    "교통약자지역": [1],
-    "교통소외지역": [2]
+        "교통약자지역": [1],
+        "교통소외지역": [2]
     }
     sub_service_labels = list(sub_service_options.keys())
     sub_service_default_index = sub_service_labels.index("교통약자지역")
     selected_sub_service = st.selectbox("", sub_service_labels, index=sub_service_default_index)
 
     col = st.columns((1, 1), gap='large')
-    
+
     with col[0]:
         st.markdown('#### **|** 출발 정류장 이용 빈도')
         locations, last_log = return_pickup_station_count(current_time, days_interval=14)
@@ -260,14 +240,13 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
         selected_days = options[selected_label]
         locations, last_log = return_pickup_station_count(current_time, days_interval=selected_days)
 
-        # 2026.03.08 업데이트 - 백정엽 (지도 옆에 표 표출)
         use_frequency_df = pd.DataFrame(locations)
         use_frequency_df = use_frequency_df[['station', 'weight']]
         use_frequency_df = use_frequency_df.sort_values('weight', ascending=False).reset_index(drop=True)
         use_frequency_df = use_frequency_df.drop_duplicates('station').reset_index(drop=True)
         use_frequency_df = use_frequency_df.rename(columns={
             'station': '정류장 ID',
-            'weight' : '출발 빈도수 (건)'
+            'weight': '출발 빈도수 (건)'
         })
         use_frequency_df.index = use_frequency_df.index + 1
         use_frequency_df['출발 빈도수 (건)'] = use_frequency_df['출발 빈도수 (건)'].round(0)
@@ -284,17 +263,27 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             if row.name in highlight_idx:
                 return ["background-color: rgba(255, 215, 0, 0.3); font-weight: bold;"] * len(row)
             return [""] * len(row)
-        
-        styled_df = use_frequency_df.style.apply(highlight_rows, axis=1)
 
+        styled_df = use_frequency_df.style.apply(highlight_rows, axis=1)
 
         if selected_sub_service == "교통소외지역":
             col_subs = st.columns((2, 1), gap='small')
             with col_subs[0]:
                 try:
-                    map_html = markers_map_html(PAGES_URL, kakao_api_key, normalize_weights(locations), center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]), level=st.secrets.get("underserved_area", "")["level"])
+                    map_html = markers_map_html(
+                        PAGES_URL,
+                        kakao_api_key,
+                        normalize_weights(locations),
+                        center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]),
+                        level=st.secrets.get("underserved_area", "")["level"]
+                    )
                 except Exception:
-                    map_html = default_map_html(PAGES_URL, kakao_api_key, center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]), level=st.secrets.get("underserved_area", "")["level"])
+                    map_html = default_map_html(
+                        PAGES_URL,
+                        kakao_api_key,
+                        center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]),
+                        level=st.secrets.get("underserved_area", "")["level"]
+                    )
                 components.html(map_html, height=700)
             with col_subs[1]:
                 st.dataframe(styled_df, use_container_width=True, height=700)
@@ -302,9 +291,20 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             col_subs = st.columns((2, 1), gap='small')
             with col_subs[0]:
                 try:
-                    map_html = markers_map_html(PAGES_URL, kakao_api_key, normalize_weights(locations), center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]), level=st.secrets.get("vulnerable_area", "")["level"])
+                    map_html = markers_map_html(
+                        PAGES_URL,
+                        kakao_api_key,
+                        normalize_weights(locations),
+                        center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]),
+                        level=st.secrets.get("vulnerable_area", "")["level"]
+                    )
                 except Exception:
-                    map_html = default_map_html(PAGES_URL, kakao_api_key, center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]), level=st.secrets.get("vulnerable_area", "")["level"])
+                    map_html = default_map_html(
+                        PAGES_URL,
+                        kakao_api_key,
+                        center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]),
+                        level=st.secrets.get("vulnerable_area", "")["level"]
+                    )
                 components.html(map_html, height=700)
             with col_subs[1]:
                 st.dataframe(styled_df, use_container_width=True, height=700)
@@ -324,14 +324,13 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
         selected_days = options[selected_label]
         link_df, last_log = return_link_frequency(current_time, day_interval=selected_days)
 
-        # 2026.03.08 업데이트 - 백정엽 (지도 옆에 표 표출)
         link_frequency_df = pd.DataFrame(link_df)
         link_frequency_df = link_frequency_df[['linkID', 'count']]
         link_frequency_df = link_frequency_df.sort_values('count', ascending=False).reset_index(drop=True)
         link_frequency_df = link_frequency_df.drop_duplicates('linkID').reset_index(drop=True)
         link_frequency_df = link_frequency_df.rename(columns={
             'linkID': '경로 ID',
-            'count' : '경로 이용 빈도수 (건)'
+            'count': '경로 이용 빈도수 (건)'
         })
         link_frequency_df.index = link_frequency_df.index + 1
         link_frequency_df['경로 이용 빈도수 (건)'] = link_frequency_df['경로 이용 빈도수 (건)'].round(0)
@@ -348,27 +347,49 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             if row.name in highlight_idx:
                 return ["background-color: rgba(255, 215, 0, 0.3); font-weight: bold;"] * len(row)
             return [""] * len(row)
-        
+
         styled_df = link_frequency_df.style.apply(highlight_rows, axis=1)
 
         if selected_sub_service == "교통소외지역":
             col_subs = st.columns((2, 1), gap='small')
             with col_subs[0]:
                 try:
-                    map_html = links_map_html(PAGES_URL, kakao_api_key, link_df, center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]), level=st.secrets.get("underserved_area", "")["level"])
+                    map_html = links_map_html(
+                        PAGES_URL,
+                        kakao_api_key,
+                        link_df,
+                        center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]),
+                        level=st.secrets.get("underserved_area", "")["level"]
+                    )
                 except Exception:
-                    map_html = default_map_html(PAGES_URL, kakao_api_key, center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]), level=st.secrets.get("underserved_area", "")["level"])
+                    map_html = default_map_html(
+                        PAGES_URL,
+                        kakao_api_key,
+                        center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]),
+                        level=st.secrets.get("underserved_area", "")["level"]
+                    )
                 components.html(map_html, height=700)
             with col_subs[1]:
                 st.dataframe(styled_df, use_container_width=True, height=700)
-        
+
         else:
             col_subs = st.columns((2, 1), gap='small')
             with col_subs[0]:
                 try:
-                    map_html = links_map_html(PAGES_URL, kakao_api_key, link_df, center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]), level=st.secrets.get("vulnerable_area", "")["level"])
+                    map_html = links_map_html(
+                        PAGES_URL,
+                        kakao_api_key,
+                        link_df,
+                        center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]),
+                        level=st.secrets.get("vulnerable_area", "")["level"]
+                    )
                 except Exception:
-                    map_html = default_map_html(PAGES_URL, kakao_api_key, center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]), level=st.secrets.get("vulnerable_area", "")["level"])
+                    map_html = default_map_html(
+                        PAGES_URL,
+                        kakao_api_key,
+                        center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]),
+                        level=st.secrets.get("vulnerable_area", "")["level"]
+                    )
                 components.html(map_html, height=700)
             with col_subs[1]:
                 st.dataframe(styled_df, use_container_width=True, height=700)
