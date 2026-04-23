@@ -113,7 +113,19 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
             merged_df = pd.concat([temp_past_df, temp_last_df], ignore_index=True)
             merged_df["day"] = pd.to_numeric(merged_df["day"], errors="coerce")
             merged_df = merged_df.sort_values("day").reset_index(drop=True)
+            merged_df = merged_df.sort_values("day").reset_index(drop=True)
+
+            # ✅ 데이터 없을 때 방어
+            if merged_df.empty or merged_df["total_count"].dropna().empty:
+                st.warning("데이터가 없습니다.")
+                return
+
+            # ✅ window_size 안전하게
             window_size = int(np.round(len(temp_last_df) / 2, 0))
+            window_size = max(1, window_size)
+
+
+
             merged_df["이동평균"] = merged_df["disabled_count"].iloc[::-1].rolling(window=window_size, min_periods=1).mean().iloc[::-1]
             moving_avg_df = merged_df[merged_df["day"].isin(temp_last_df["day"])].copy()
             area = alt.Chart(temp_last_df).mark_area(opacity=0.7, color="#3CAEA3").encode(
