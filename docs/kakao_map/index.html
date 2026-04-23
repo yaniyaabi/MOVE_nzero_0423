@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MOVE Map</title>
+  <style>html,body{margin:0;height:100%}#map{width:100%;height:100vh}</style>
+
+  <script>
+    const params   = new URLSearchParams(location.search);
+    const APPKEY   = params.get("appkey");
+    const TYPE     = params.get("type") || "blank";
+    const PAYLOAD  = params.get("payload") || "";
+
+    if (!APPKEY) { alert("Kakao appkey가 전달되지 않았습니다. ?appkey=..."); }
+
+    const sdk = document.createElement("script");
+    sdk.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(APPKEY)}&autoload=false`;
+    sdk.onload = () => kakao.maps.load(initMap);
+    document.head.appendChild(sdk);
+
+    function b64ToJson(b64) {
+      if (!b64) return null;
+      try { return JSON.parse(decodeURIComponent(escape(atob(b64)))); }
+      catch (e) { console.error("payload decode 실패:", e); return null; }
+    }
+    function clamp(n, min, max){ return Math.max(min, Math.min(n, max)); }
+
+    let map;
+
+    const markerImg = (size=24) => new kakao.maps.MarkerImage(
+      "https://t1.daumcdn.net/localimg/localimages/07/2018/pc/img/marker_spot.png",
+      new kakao.maps.Size(size, size*1.35),
+      { offset: new kakao.maps.Point(size/2, size*1.35) }
+    );
+
+    function applyCenterLevel(p) {
+      if (p && p.center) {
+        map.setCenter(new kakao.maps.LatLng(p.center.lat, p.center.lng));
+      }
+      if (p && typeof p.level === "number") {
+        map.setLevel(p.level);
+      }
+    }
+
+    function drawPoints(p) {
+      applyCenterLevel(p);
+      const arr = p.locations || [];
+      arr.forEach(pt => {
+        const size = Math.max(10, Math.min(60, Number(pt.scaled_weight || 24)));
+        new kakao.maps.Marker({
+          position: new kakao.maps.LatLng(pt.lat, pt.lng),
+          image: markerImg(size),
+          title: `${pt.station ?? ""}${pt.weight != null ? `: ${pt.weight}` : ""}`
+        }).setMap(map);
+      });
+    }
+
+    function drawPolyline(points, color) {
+      const path = points.map(pt => new kakao.maps.LatLng(pt.lat, pt.lng));
+      new kakao.maps.Polyline({
+        path, strokeWeight: 3,
+        strokeColor: color || "#173F5F",
+        strokeOpacity: 0.9,
+        strokeStyle: "shortdash"
+      }).setMap(map);
+    }
+
+    function drawRoutes(p) {
+      applyCenterLevel(p);
+      const routes = p.routes || [];
+
+      routes.forEach(route => {
+        if (!Array.isArray(route) || route.length < 2) return;
+
+        if (Array.isArray(route[0])) {
+          route.forEach(seg => {
+            if (!Array.isArray(seg) || seg.length < 2) return;
+            const firstColored = seg.find(pt => pt && pt.color);
+            drawPolyline(seg, (firstColored && firstColored.color) || "#173F5F");
+          });
+          return;
+        }
+
+        let chunk = [];
+        let currentColor = null;
+
+        for (const pt of route) {
+          const c = pt.color || "#173F5F";
+          if (currentColor === null || c === currentColor) {
+            chunk.push(pt);
+            currentColor = c;
+          } else {
+            if (chunk.length >= 2) drawPolyline(chunk, currentColor);
+            chunk = [pt];
+            currentColor = c;
+          }
+        }
+        if (chunk.length >= 2) drawPolyline(chunk, currentColor);
+      });
+
+      (p.pickups || []).forEach((u, i) => {
+        const pos  = new kakao.maps.LatLng(u.lat, u.lng);
+        const size = 30;
+        const title =
+          `탑승순서: ${i+1}\n탑승시간: ${u.onboardingTime}\n승객 수: ${u.passengerCount}\n휠체어 수: ${u.wheelchairCount}\n서비스 유형: ${u.serviceType}`;
+        new kakao.maps.Marker({ position: pos, image: markerImg(size), title }).setMap(map);
+      });
+    }
+
+    function drawLinks(p) {
+      applyCenterLevel(p);
+      (p.links || []).forEach(r => {
+        const path = [
+          new kakao.maps.LatLng(r.start_lat, r.start_lon),
+          new kakao.maps.LatLng(r.end_lat, r.end_lon)
+        ];
+        new kakao.maps.Polyline({
+          path,
+          strokeWeight: r.weight || 8,
+          strokeColor: r.color || "#002642",
+          strokeOpacity: r.opacity ?? 0.8,
+          strokeStyle: "solid"
+        }).setMap(map);
+      });
+    }
+
+    function drawPolygons(p) {
+      applyCenterLevel(p);
+      (p.features || []).forEach(f => {
+        const coords = (((f||{}).geometry||{}).coordinates||[])[0];
+        if (!Array.isArray(coords)) return;
+        const path = coords.map(c => new kakao.maps.LatLng(c[1], c[0]));
+        const raw = (((f||{}).properties||{}).opacity_value);
+        const op  = Math.max(0, Math.min(1, Number(raw == null ? 0 : raw)));
+        if (op <= 0) return;
+        new kakao.maps.Polygon({
+          path, strokeWeight: 1, strokeColor: "#000000", strokeOpacity: 0.1,
+          fillColor: "#ED553B", fillOpacity: op
+        }).setMap(map);
+      });
+    }
+
+    function initMap() {
+      const center = new kakao.maps.LatLng(36.502306, 127.264738);
+      map = new kakao.maps.Map(document.getElementById("map"), { center, level: 4 });
+
+      const payload = b64ToJson(PAYLOAD);
+      if (payload) {
+        if (TYPE === "points")   drawPoints(payload);
+        else if (TYPE === "routes")  drawRoutes(payload);
+        else if (TYPE === "links")   drawLinks(payload);
+        else if (TYPE === "polygons") drawPolygons(payload);
+      }
+
+      window.addEventListener("message", (e) => {
+        const data = e.data || {};
+        if (!data.type) return;
+        if (data.type === "SET_MARKERS")   drawPoints(data.payload || {});
+        else if (data.type === "SET_ROUTES")  drawRoutes(data.payload || {});
+        else if (data.type === "SET_LINKS")   drawLinks(data.payload || {});
+        else if (data.type === "SET_GEOJSON") drawPolygons(data.payload || {});
+      });
+
+      try { window.parent.postMessage({ type: "MAP_READY" }, "*"); }
+      catch (e) { console.warn("MAP_READY 보내기 실패:", e); }
+    }
+  </script>
+</head>
+<body>
+  <div id="map"></div>
+</body>
+</html>
