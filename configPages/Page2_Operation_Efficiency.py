@@ -151,7 +151,24 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
 
         col_sub = st.columns((0.3, 1, 1), gap='small')
         with col_sub[0]:
-            st.metric(label="실차 운행률 (%)", value=np.round(stats[0], 1), delta=np.round((stats[0] - stats[1]), 1), label_visibility='hidden')
+            #st.metric(label="실차 운행률 (%)", value=np.round(stats[0], 1), delta=np.round((stats[0] - stats[1]), 1), label_visibility='hidden')
+            st.metric(
+                label="실차 운행률 (%)",
+                value=float(np.round(stats[0], 1)),
+                delta=float(np.round(stats[0] - stats[1], 1)),
+                label_visibility='hidden'
+                )
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             st.markdown(f'###### 지난 {temp_interval}일 평균')
         with col_sub[1]:
             st.altair_chart(chart_daily, use_container_width=True)
@@ -165,7 +182,27 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
         
         col_sub = st.columns((0.3, 1, 1), gap='small')
         with col_sub[0]:
-            st.metric(label="실차 운행률 (%)", value=np.round(stats[0], 1), delta=np.round((stats[0] - stats[1]), 1), label_visibility='hidden')
+            #st.metric(label="실차 운행률 (%)", value=np.round(stats[0], 1), delta=np.round((stats[0] - stats[1]), 1), label_visibility='hidden')
+            st.metric(
+                label="실차 운행률 (%)",
+                value=float(np.round(stats[0], 1)),
+                delta=float(np.round(stats[0] - stats[1], 1)),
+                label_visibility='hidden'
+            )
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             st.markdown(f'###### 지난 {temp_interval}일 평균')
         with col_sub[1]:
             st.altair_chart(chart_daily, use_container_width=True)
@@ -177,7 +214,21 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
         chart_daily, stats = return_service_capacity(current_time=current_time, days_interval=temp_interval)
         col_sub = st.columns((0.3, 1), gap='small')
         with col_sub[0]:
-            st.metric(label="승객 탑승률 (%)", value=np.round(stats[0], 1), delta=np.round((stats[0] - stats[1]), 1), label_visibility='hidden')
+            #st.metric(label="승객 탑승률 (%)", value=np.round(stats[0], 1), delta=np.round((stats[0] - stats[1]), 1), label_visibility='hidden')
+            st.metric(
+                label="승객 탑승률 (%)",
+                value=float(np.round(stats[0], 1)),
+                delta=float(np.round(stats[0] - stats[1], 1)),
+                label_visibility='hidden'
+            )
+            
+            
+            
+            
+            
+            
+            
+            
             st.markdown(f'###### 지난 {temp_interval}일 평균')
         with col_sub[1]:
             st.altair_chart(chart_daily, use_container_width=True)
