@@ -60,6 +60,19 @@ df['onboarding_datetime'] = df['onboardingTime'].apply(parse_onboarding_time)
 
 def return_pickup_station_count(current_time, days_interval):
     df_from_now = df[(df['onboarding_datetime'] < current_time)&(df['onboarding_datetime'] >= current_time - dt.timedelta(days=days_interval))]
+    # 조회된 승차 데이터가 없으면 빈 결과 반환
+    if (
+        df_from_now.empty
+        or "onboarding_datetime" not in df_from_now.columns
+        or df_from_now["onboarding_datetime"].dropna().empty
+    ):
+        return [], None
+    
+    
+    
+    
+    
+    
     last_log = df_from_now.sort_values('onboarding_datetime')['onboarding_datetime'].values[-1]
     pickup_counts = df_from_now['pickupStationID'].value_counts()
     pickup_station_count_df = pd.DataFrame(pickup_counts).reset_index()
