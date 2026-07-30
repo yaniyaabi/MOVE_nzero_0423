@@ -239,32 +239,34 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
         selected_label = st.selectbox(f"🕒 마지막 업데이트: {last_log}", option_labels, index=default_index)
         selected_days = options[selected_label]
         locations, last_log = return_pickup_station_count(current_time, days_interval=selected_days)
-
-        use_frequency_df = pd.DataFrame(locations)
-        use_frequency_df = use_frequency_df[['station', 'weight']]
-        use_frequency_df = use_frequency_df.sort_values('weight', ascending=False).reset_index(drop=True)
-        use_frequency_df = use_frequency_df.drop_duplicates('station').reset_index(drop=True)
-        use_frequency_df = use_frequency_df.rename(columns={
-            'station': '정류장 ID',
-            'weight': '출발 빈도수 (건)'
-        })
-        use_frequency_df.index = use_frequency_df.index + 1
-        use_frequency_df['출발 빈도수 (건)'] = use_frequency_df['출발 빈도수 (건)'].round(0)
-
-        top2_values = use_frequency_df["출발 빈도수 (건)"].nlargest(2).unique()
-        max_rows = use_frequency_df[use_frequency_df["출발 빈도수 (건)"].isin(top2_values)]
-
-        if len(max_rows) > 1:
-            highlight_idx = max_rows.index
-        else:
-            highlight_idx = use_frequency_df.nlargest(3, "출발 빈도수 (건)").index
-
-        def highlight_rows(row):
-            if row.name in highlight_idx:
-                return ["background-color: rgba(255, 215, 0, 0.3); font-weight: bold;"] * len(row)
-            return [""] * len(row)
-
-        styled_df = use_frequency_df.style.apply(highlight_rows, axis=1)
+        if last_log is None:
+            st.info("No data")
+        else:   
+            use_frequency_df = pd.DataFrame(locations)
+            use_frequency_df = use_frequency_df[['station', 'weight']]
+            use_frequency_df = use_frequency_df.sort_values('weight', ascending=False).reset_index(drop=True)
+            use_frequency_df = use_frequency_df.drop_duplicates('station').reset_index(drop=True)
+            use_frequency_df = use_frequency_df.rename(columns={
+                'station': '정류장 ID',
+                'weight': '출발 빈도수 (건)'
+            })
+            use_frequency_df.index = use_frequency_df.index + 1
+            use_frequency_df['출발 빈도수 (건)'] = use_frequency_df['출발 빈도수 (건)'].round(0)
+    
+            top2_values = use_frequency_df["출발 빈도수 (건)"].nlargest(2).unique()
+            max_rows = use_frequency_df[use_frequency_df["출발 빈도수 (건)"].isin(top2_values)]
+    
+            if len(max_rows) > 1:
+                highlight_idx = max_rows.index
+            else:
+                highlight_idx = use_frequency_df.nlargest(3, "출발 빈도수 (건)").index
+    
+            def highlight_rows(row):
+                if row.name in highlight_idx:
+                    return ["background-color: rgba(255, 215, 0, 0.3); font-weight: bold;"] * len(row)
+                return [""] * len(row)
+    
+            styled_df = use_frequency_df.style.apply(highlight_rows, axis=1)
 
         if selected_sub_service == "교통소외지역":
             col_subs = st.columns((2, 1), gap='small')
