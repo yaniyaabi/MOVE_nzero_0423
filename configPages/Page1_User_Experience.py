@@ -116,65 +116,89 @@ def render(current_time, temp_interval, PAGES_URL, kakao_api_key):
         _, _, _, _, locations = return_waitings(current_time=current_time, days_interval=temp_interval, reserveType=selected_label, sevice_Type=selected_service_values)
 
         # 2026.03.08 업데이트 - 백정엽 (지도 옆에 표 표출)
+        #waiting_df = pd.DataFrame(locations)
+        #waiting_df = waiting_df[['station', 'weight']]
+
         waiting_df = pd.DataFrame(locations)
-        waiting_df = waiting_df[['station', 'weight']]
 
-        waiting_df = (
-            waiting_df
-            .groupby('station')
-            .agg(
-                예약건수=('station', 'count'),
-                평균대기시간=('weight', 'mean')
+        required_columns = {"station", "weight"}
+
+        if waiting_df.empty or not required_columns.issubset(waiting_df.columns):
+            st.info("No data")
+
+        else:
+            waiting_df = waiting_df[["station", "weight"]]
+
+            waiting_df = (
+                waiting_df
+                .groupby("station")
+                .agg(
+                    예약건수=("station", "count"),
+                    평균대기시간=("weight", "mean")
+                )
+                .reset_index()
             )
-            .reset_index()
-        )
-        waiting_df = waiting_df.rename(columns={
-            'station': '정류장 ID',
-            '평균대기시간': '(평균)대기시간 (분)'
-        })
 
-        waiting_df = waiting_df.sort_values('(평균)대기시간 (분)', ascending=False).reset_index(drop=True)
-        waiting_df.index = waiting_df.index + 1
+    # 아래의 rename, sort, 지도 및 dataframe 출력 코드도
+    # 모두 이 else 블록 안으로 한 단계 들여쓰기
 
-        top2_values = waiting_df["(평균)대기시간 (분)"].nlargest(2).unique()
-        max_rows = waiting_df[waiting_df["(평균)대기시간 (분)"].isin(top2_values)]
-
-
-        if len(max_rows) > 1:
-            highlight_idx = max_rows.index
-        else:
-            highlight_idx = waiting_df.nlargest(3, "(평균)대기시간 (분)").index
-
-        def highlight_rows(row):
-            if row.name in highlight_idx:
-                return ["background-color: rgba(255, 215, 0, 0.3); font-weight: bold;"] * len(row)
-            return [""] * len(row)
-        
-        styled_df = waiting_df.style.apply(highlight_rows, axis=1).format({
-                        '(평균)대기시간 (분)': '{:.1f}'
-                    })
-
-        if selected_sub_service == "교통소외지역":
-            col_subs = st.columns((2, 1), gap='small')
-            with col_subs[0]:
-                try:
-                    map_html = markers_map_html(PAGES_URL, kakao_api_key, normalize_weights(locations), center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]), level=st.secrets.get("underserved_area", "")["level"])
-                except Exception:
-                    map_html = default_map_html(PAGES_URL, kakao_api_key, center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]), level=st.secrets.get("underserved_area", "")["level"])
-                components.html(map_html, height=700)
-            with col_subs[1]:
-                st.dataframe(styled_df, use_container_width=True, height=700)
-
-        else:
-            col_subs = st.columns((2, 1), gap='small')
-            with col_subs[0]:
-                try:
-                    map_html = markers_map_html(PAGES_URL, kakao_api_key, normalize_weights(locations), center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]), level=st.secrets.get("vulnerable_area", "")["level"])
-                except Exception:
-                    map_html = default_map_html(PAGES_URL, kakao_api_key, center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]), level=st.secrets.get("vulnerable_area", "")["level"])
-                components.html(map_html, height=700)
-            with col_subs[1]:
-                st.dataframe(styled_df, use_container_width=True, height=700)
+            
+            waiting_df = (
+                waiting_df
+                .groupby('station')
+                .agg(
+                    예약건수=('station', 'count'),
+                    평균대기시간=('weight', 'mean')
+                )
+                .reset_index()
+            )
+            waiting_df = waiting_df.rename(columns={
+                'station': '정류장 ID',
+                '평균대기시간': '(평균)대기시간 (분)'
+            })
+    
+            waiting_df = waiting_df.sort_values('(평균)대기시간 (분)', ascending=False).reset_index(drop=True)
+            waiting_df.index = waiting_df.index + 1
+    
+            top2_values = waiting_df["(평균)대기시간 (분)"].nlargest(2).unique()
+            max_rows = waiting_df[waiting_df["(평균)대기시간 (분)"].isin(top2_values)]
+    
+    
+            if len(max_rows) > 1:
+                highlight_idx = max_rows.index
+            else:
+                highlight_idx = waiting_df.nlargest(3, "(평균)대기시간 (분)").index
+    
+            def highlight_rows(row):
+                if row.name in highlight_idx:
+                    return ["background-color: rgba(255, 215, 0, 0.3); font-weight: bold;"] * len(row)
+                return [""] * len(row)
+            
+            styled_df = waiting_df.style.apply(highlight_rows, axis=1).format({
+                            '(평균)대기시간 (분)': '{:.1f}'
+                        })
+    
+            if selected_sub_service == "교통소외지역":
+                col_subs = st.columns((2, 1), gap='small')
+                with col_subs[0]:
+                    try:
+                        map_html = markers_map_html(PAGES_URL, kakao_api_key, normalize_weights(locations), center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]), level=st.secrets.get("underserved_area", "")["level"])
+                    except Exception:
+                        map_html = default_map_html(PAGES_URL, kakao_api_key, center=(st.secrets.get("underserved_area", "")["lat"], st.secrets.get("underserved_area", "")["lng"]), level=st.secrets.get("underserved_area", "")["level"])
+                    components.html(map_html, height=700)
+                with col_subs[1]:
+                    st.dataframe(styled_df, use_container_width=True, height=700)
+    
+            else:
+                col_subs = st.columns((2, 1), gap='small')
+                with col_subs[0]:
+                    try:
+                        map_html = markers_map_html(PAGES_URL, kakao_api_key, normalize_weights(locations), center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]), level=st.secrets.get("vulnerable_area", "")["level"])
+                    except Exception:
+                        map_html = default_map_html(PAGES_URL, kakao_api_key, center=(st.secrets.get("vulnerable_area", "")["lat"], st.secrets.get("vulnerable_area", "")["lng"]), level=st.secrets.get("vulnerable_area", "")["level"])
+                    components.html(map_html, height=700)
+                with col_subs[1]:
+                    st.dataframe(styled_df, use_container_width=True, height=700)
 
     with col[1]:
         st.markdown('#### **|** 실시간 운행 정보 - 30분 전후 포함')
