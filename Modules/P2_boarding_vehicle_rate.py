@@ -99,7 +99,8 @@ if current_mode == "dynamic":
     mycursor.execute(query)
     data = mycursor.fetchall()
     con.close()
-    operation_df = pd.DataFrame(data, columns=["operationID", "vehicleID", "StationIDs", "routeIDs", "startTime", "endTime", "VehicleType", "operationServiceType"])
+    operation_df = pd.DataFrame(data, columns=["operationID", "vehicleID", "StationIDs", "routeIDs", "startTime", "endTime", "VehicleType", "operationServiceType", "operationStatus"])
+
 
     # import route table
     con = pymysql.connect(
